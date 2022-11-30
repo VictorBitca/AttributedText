@@ -20,7 +20,7 @@
   }
 
   extension AttributedTextImpl {
-    final class TextView: UITextView {
+    final class TextView: UITextView, UITextViewDelegate {
       var maxLayoutWidth: CGFloat = 0 {
         didSet {
           guard maxLayoutWidth != oldValue else { return }
@@ -36,13 +36,11 @@
         self.backgroundColor = .clear
         self.textContainerInset = .zero
         self.isEditable = false
-        self.isSelectable = false
+        self.isSelectable = true
         self.isScrollEnabled = false
         self.textContainer.lineFragmentPadding = 0
-
-        self.addGestureRecognizer(
-          UITapGestureRecognizer(target: self, action: #selector(handleTap(sender:)))
-        )
+        self.isUserInteractionEnabled = true
+        self.delegate = self
       }
 
       required init?(coder: NSCoder) {
@@ -57,30 +55,9 @@
         return sizeThatFits(CGSize(width: maxLayoutWidth, height: .greatestFiniteMagnitude))
       }
 
-      @objc func handleTap(sender: UITapGestureRecognizer) {
-        guard let url = self.url(at: sender.location(in: self)) else {
-          return
-        }
-        openLink?(url)
-      }
-
-      private func url(at location: CGPoint) -> URL? {
-        guard let attributedText = self.attributedText else { return nil }
-
-        let index = indexOfCharacter(at: location)
-        return attributedText.attribute(.link, at: index, effectiveRange: nil) as? URL
-      }
-
-      private func indexOfCharacter(at location: CGPoint) -> Int {
-        let locationInTextContainer = CGPoint(
-          x: location.x - self.textContainerInset.left,
-          y: location.y - self.textContainerInset.top
-        )
-        return self.layoutManager.characterIndex(
-          for: locationInTextContainer,
-          in: self.textContainer,
-          fractionOfDistanceBetweenInsertionPoints: nil
-        )
+      func textView(_ textView: UITextView, shouldInteractWith URL: URL, in characterRange: NSRange, interaction: UITextItemInteraction) -> Bool {
+        openLink?(URL)
+        return false
       }
     }
   }
